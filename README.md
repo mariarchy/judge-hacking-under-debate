@@ -30,10 +30,7 @@ only credential needed. Roles are declared in [config.py](config.py):
 Smoke test the credential:
 
 ```bash
-uv run python -c "
-import asyncio
-from inspect_ai.model import get_model
-print(asyncio.run(get_model('openai/gpt-4.1-nano').generate('say ok')).completion)"
+uv run python smoke.py"
 ```
 
 
