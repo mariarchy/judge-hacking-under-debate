@@ -1,0 +1,27 @@
+[project]
+name = "judge-hacking-under-debate"
+version = "0.1.0"
+description = "Mini judge-hacking pilot: can a debater learn a weak judge's blind spots in sabotage detection?"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "inspect-ai>=0.3.259",
+    "matplotlib>=3.10.0",
+    "openai>=2.45.0",
+    "pandas>=2.3.0",
+    "pydantic>=2.13.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.3",
+]
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

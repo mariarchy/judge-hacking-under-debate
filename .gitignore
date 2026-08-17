@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+
+# Inspect eval logs are large; keep the derived metrics and figures instead.
+logs/
+!logs/.gitkeep
+
+results/*.csv
+results/*.png
+human_verdicts.jsonl
+notes
+
+.DS_Store
+.ruff_cache/
+.pytest_cache/
