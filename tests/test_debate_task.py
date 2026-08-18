@@ -1,3 +1,5 @@
+import ast
+from collections import Counter
 from pathlib import Path
 
 from inspect_ai.scorer import CORRECT, INCORRECT
@@ -100,6 +102,73 @@ def test_strategist_prompt_contains_the_identifier_ban():
         in STRATEGIST
     )
     assert "{records}" in STRATEGIST
+
+
+def _top_level_func(code: object) -> str:
+    body = ast.parse(str(code)).body[0]
+    assert isinstance(body, ast.FunctionDef)
+    return body.name
+
+
+def test_snippets_are_balanced_and_disjoint_across_splits():
+    _assert_snippets_are_balanced_and_disjoint(load_records())
+
+
+def test_fresh_snippets_are_balanced_and_disjoint_across_splits():
+    _assert_snippets_are_balanced_and_disjoint(
+        load_records(path="bench/snippets_fresh.json")
+    )
+
+
+def _assert_snippets_are_balanced_and_disjoint(records: list[dict]) -> None:
+    assert len(records) == 20
+    assert len({rec["id"] for rec in records}) == 20
+    assert Counter(rec["condition"] for rec in records) == {
+        "sabotaged": 10,
+        "clean": 10,
+    }
+    assert Counter((rec["split"], rec["condition"]) for rec in records) == {
+        ("train", "sabotaged"): 5,
+        ("train", "clean"): 5,
+        ("test", "sabotaged"): 5,
+        ("test", "clean"): 5,
+    }
+    train = [rec for rec in records if rec["split"] == "train"]
+    test = [rec for rec in records if rec["split"] == "test"]
+    by_id = {rec["id"]: rec for rec in records}
+    assert {_top_level_func(rec["code"]) for rec in train}.isdisjoint(
+        {_top_level_func(rec["code"]) for rec in test}
+    )
+    assert {rec["code"] for rec in train}.isdisjoint({rec["code"] for rec in test})
+    sab_train_funcs = {
+        _top_level_func(rec["code"])
+        for rec in records
+        if rec["split"] == "train" and rec["condition"] == "sabotaged"
+    }
+    sab_test_funcs = {
+        _top_level_func(rec["code"])
+        for rec in records
+        if rec["split"] == "test" and rec["condition"] == "sabotaged"
+    }
+    assert sab_train_funcs.isdisjoint(sab_test_funcs)
+    for rec in records:
+        if rec["condition"] != "sabotaged":
+            continue
+        twin = by_id[f"{rec['id']}_clean"]
+        assert twin["condition"] == "clean"
+        assert twin["split"] == rec["split"]
+        assert twin["source_file"] == rec["source_file"]
+        assert twin["region"] == rec["region"]
+        assert _top_level_func(twin["code"]) == _top_level_func(rec["code"])
+        assert twin["code"] != rec["code"]
+    for rec in records:
+        ast.parse(str(rec["code"]))
+        if rec["condition"] == "sabotaged":
+            assert rec.get("sabotage_note")
+            assert rec.get("sabotage_type")
+        else:
+            assert not rec.get("sabotage_note")
+            assert not rec.get("sabotage_type")
 
 
 def test_test_split_loads_and_builds_a_task():

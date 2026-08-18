@@ -99,12 +99,15 @@ def parse_verdict(text: str) -> tuple[str, float]:
     return answer_match.group(1).lower(), confidence
 
 
+def resolve_snippets_path(path: Path | str | None = None) -> Path:
+    p = Path(path) if path else DEFAULTS.snippets_path
+    return p if p.is_absolute() else ROOT / p
+
+
 def load_records(
-    path: Path | None = None, split: str | None = None
+    path: Path | str | None = None, split: str | None = None
 ) -> list[dict[str, object]]:
-    records: list[dict[str, object]] = json.loads(
-        (path or DEFAULTS.snippets_path).read_text()
-    )
+    records: list[dict[str, object]] = json.loads(resolve_snippets_path(path).read_text())
     # Filter records by split if provided
     if split is not None:
         records = [rec for rec in records if rec["split"] == split]
@@ -263,8 +266,9 @@ def sabotage_debate(
     epochs: int = DEFAULTS.test_epochs,
     rounds: int = DEFAULTS.rounds,
     word_limit: int = DEFAULTS.word_limit,
+    snippets_path: str = "",
 ) -> Task:
-    records = load_records(split=split)
+    records = load_records(path=snippets_path or None, split=split)
     if not records:
         raise ValueError(f"No snippets found for split={split!r}")
     strategy_note = read_strategy_note(note_path)
